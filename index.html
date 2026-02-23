@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizontal Ritual Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #000000;
+            --accent: #6c5ce7;
+            --weekend: #f8f9fa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* Layout optimized for wide viewing */
+        body { 
+            background: #f4f4f4; 
+            font-family: 'Inter', sans-serif; 
+            color: var(--ink); 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* PRINT BAR - PERSISTENT AT TOP */
+        #print-toolbar {
+            width: 100%; max-width: 1500px;
+            background: var(--ink); color: white; 
+            padding: 15px 30px; display: flex; 
+            justify-content: space-between; align-items: center;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .main-canvas { 
+            width: 100%; max-width: 1500px; 
+            background: white; padding: 40px; 
+            border: 2px solid var(--ink); border-top: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        header { 
+            display: flex; justify-content: space-between; align-items: flex-end; 
+            margin-bottom: 30px; border-bottom: 3px solid var(--ink); padding-bottom: 15px;
+        }
+        
+        .brand h1 { font-family: 'Playfair Display', serif; font-size: 40px; font-style: italic; }
+
+        .config-bar { 
+            display: flex; gap: 10px; margin-bottom: 25px; 
+            background: #f9f9f9; padding: 15px; border: 1px solid #eee;
+        }
+        
+        select, input { padding: 10px; border: 2px solid var(--ink); font-weight: 700; outline: none; }
+        .btn { padding: 10px 25px; border: 2px solid var(--ink); cursor: pointer; font-weight: 900; text-transform: uppercase; font-size: 11px; }
+        .btn-add { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* THE HORIZONTAL GRID */
+        .tracker-grid { width: 100%; border-top: 2px solid var(--ink); }
+        .row { display: grid; grid-template-columns: 240px repeat(31, 1fr) 40px; border-bottom: 1px solid #eee; }
+        
+        .label { 
+            padding: 12px 15px; font-weight: 700; font-size: 11px; text-transform: uppercase; 
+            border-right: 2px solid var(--ink); display: flex; align-items: center;
+            background: white;
+        }
+
+        .dot-cell { height: 45px; display: flex; justify-content: center; align-items: center; border-right: 1px solid #f0f0f0; }
+        .weekend { background: var(--weekend); }
+
+        .circle { 
+            width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ink);
+            cursor: pointer; transition: 0.2s; background: white;
+        }
+        .circle.active { background: var(--ink) !important; position: relative; }
+        .circle.active::after { content: ''; width: 6px; height: 6px; background: white; border-radius: 50%; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+
+        .header-row { background: #fafafa; border-bottom: 2px solid var(--ink); }
+        .num-label { text-align: center; font-size: 10px; font-weight: 900; line-height: 45px; border-right: 1px solid #ddd; }
+
+        .remove-icon { border: none; background: none; color: #ff7675; cursor: pointer; font-size: 18px; }
+
+        /* MEDIA KIT ENGINE: FORCED HORIZONTAL PRINT */
+        @media print {
+            @page { 
+                size: A4 landscape; /* FORCES HORIZONTAL ORIENTATION */
+                margin: 5mm; 
+            }
+            body { background: white; padding: 0; }
+            #print-toolbar, .config-bar, .remove-icon { display: none !important; }
+            .main-canvas { border: none; width: 100%; max-width: none; padding: 0; }
+            .row { grid-template-columns: 240px repeat(31, 1fr); border-bottom: 2px solid #000; }
+            .circle { -webkit-print-color-adjust: exact; print-color-adjust: exact; border: 2px solid #000 !important; }
+            .label { border-right: 2px solid #000; }
+            header { border-bottom: 4px solid #000; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="print-toolbar">
+    <div style="font-size: 12px; font-weight: 800; letter-spacing: 1px;">A4 LANDSCAPE ENGINE ACTIVE</div>
+    <button class="btn" style="background:white; color:black;" onclick="window.print()">PRINT HORIZONTAL SHEET</button>
+</div>
+
+<div class="main-canvas">
+    <header>
+        <div class="brand">
+            <h1 id="month-display">Ritual Tracker</h1>
+        </div>
+        <div style="font-size: 10px; font-weight: 800; text-align: right;">
+            EST. 2026<br>VOLUME 01
+        </div>
+    </header>
+
+    <div class="config-bar">
+        <select id="month-select" onchange="initCalendar()">
+            <option value="0">January</option><option value="1">February</option>
+            <option value="2">March</option><option value="3">April</option>
+            <option value="4">May</option><option value="5">June</option>
+            <option value="6">July</option><option value="7">August</option>
+            <option value="8">September</option><option value="9">October</option>
+            <option value="10">November</option><option value="11">December</option>
+        </select>
+        <input type="number" id="year-select" value="2026" onchange="initCalendar()" style="width: 100px;">
+        <input type="text" id="habit-input" placeholder="Define a new discipline..." style="flex:1">
+        <button class="btn btn-add" onclick="addHabit()">Add Discipline</button>
+    </div>
+
+    <div class="tracker-grid">
+        <div class="row header-row" id="day-header">
+            <div class="label" style="border-right: 2px solid #000">Disciplines</div>
+            </div>
+        <div id="habit-rows"></div>
+    </div>
+</div>
+
+<script>
+    let habits = JSON.parse(localStorage.getItem('h_print_v2')) || [];
+    
+    function initCalendar() {
+        const month = parseInt(document.getElementById('month-select').value);
+        const year = parseInt(document.getElementById('year-select').value);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
+        
+        document.getElementById('month-display').innerText = `${monthName} ${year}`;
+        
+        const header = document.getElementById('day-header');
+        header.innerHTML = '<div class="label" style="border-right: 2px solid #000">Disciplines</div>';
+
+        for (let i = 1; i <= 31; i++) {
+            if (i <= daysInMonth) {
+                const date = new Date(year, month, i);
+                const isWE = (date.getDay() === 0 || date.getDay() === 6) ? 'weekend' : '';
+                header.innerHTML += `<div class="num-label ${isWE}">${i}</div>`;
+            } else {
+                header.innerHTML += `<div class="num-label" style="background:#eee"></div>`;
+            }
+        }
+        renderRows(year, month, daysInMonth);
+    }
+
+    function renderRows(year, month, daysCount) {
+        const container = document.getElementById('habit-rows');
+        container.innerHTML = '';
+
+        habits.forEach((h, hIdx) => {
+            const row = document.createElement('div');
+            row.className = 'row';
+            let html = `<div class="label" style="border-right: 2px solid #000">${h.name}</div>`;
+            
+            for (let d = 1; d <= 31; d++) {
+                if (d <= daysCount) {
+                    const key = `${year}-${month}-${d}`;
+                    const active = (h.logs && h.logs.includes(key)) ? 'active' : '';
+                    const dateObj = new Date(year, month, d);
+                    const isWE = (dateObj.getDay() === 0 || dateObj.getDay() === 6) ? 'weekend' : '';
+                    html += `<div class="dot-cell ${isWE}"><div class="circle ${active}" onclick="toggleCell(${hIdx}, '${key}')"></div></div>`;
+                } else {
+                    html += `<div class="dot-cell" style="background:#eee"></div>`;
+                }
+            }
+            html += `<div class="dot-cell"><button class="remove-icon" onclick="removeHabit(${hIdx})">×</button></div>`;
+            row.innerHTML = html;
+            container.appendChild(row);
+        });
+        localStorage.setItem('h_print_v2', JSON.stringify(habits));
+    }
+
+    function addHabit() {
+        const val = document.getElementById('habit-input').value;
+        if (val) { habits.push({ name: val, logs: [] }); initCalendar(); }
+        document.getElementById('habit-input').value = '';
+    }
+
+    window.toggleCell = (hIdx, key) => {
+        const h = habits[hIdx];
+        if(!h.logs) h.logs = [];
+        const i = h.logs.indexOf(key);
+        (i > -1) ? h.logs.splice(i, 1) : h.logs.push(key);
+        initCalendar();
+    };
+
+    window.removeHabit = (idx) => { habits.splice(idx, 1); initCalendar(); };
+
+    // Initial Load
+    const today = new Date();
+    document.getElementById('month-select').value = today.getMonth();
+    document.getElementById('year-select').value = today.getFullYear();
+    initCalendar();
+</script>
+</body>
+</html>
